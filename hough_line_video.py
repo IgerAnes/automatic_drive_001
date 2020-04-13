@@ -5,6 +5,9 @@ import cv2
 import p1
 import math
 
+video_path = r'test_videos\challenge.mp4'
+file_name = 'edited_challenge.avi'
+
 def mean(list):
     """
     calculate mean of list
@@ -18,32 +21,33 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=12):
     mPositiveValues = []  # m of Left lines
     mNegitiveValues = []  # m of Right lines
     
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
-            
-            # calculate slope and intercept
-            m = (y2-y1)/(x2-x1)
-            b = y1 - x1*m
-            
-            # threshold to check for outliers
-            if m >= 0 and (m < 0.2 or m > 0.8):
-                continue
-            elif m < 0 and (m < -0.8 or m > -0.2):
-                continue
+    if lines is not None:
+        for line in lines:
+            for x1,y1,x2,y2 in line:
+                cv2.line(img, (x1, y1), (x2, y2), color, thickness)
                 
-            # seperate positive line and negative line slopes
-            if m > 0:
-                mPositiveValues.append(m)
-                bLeftValues.append(b)
-            else:
-                mNegitiveValues.append(m)
-                bRightValues.append(b)
-    
+                # calculate slope and intercept
+                m = (y2-y1)/(x2-x1)
+                b = y1 - x1*m
+                
+                # threshold to check for outliers
+                if m >= 0 and (m < 0.2 or m > 0.8):
+                    continue
+                elif m < 0 and (m < -0.8 or m > -0.2):
+                    continue
+                    
+                # seperate positive line and negative line slopes
+                if m > 0:
+                    mPositiveValues.append(m)
+                    bLeftValues.append(b)
+                else:
+                    mNegitiveValues.append(m)
+                    bRightValues.append(b)
+        
     # Get image shape and define y region of interest value
     imshape = img.shape
     y_max   = imshape[0] # lines initial point at bottom of image    
-    y_min   = 330        # lines end point at top of ROI
+    y_min   = y_max/5*3        # lines end point at top of ROI
 
     # Get the mean of all the lines values
     AvgPositiveM = mean(mPositiveValues)
@@ -72,12 +76,12 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=12):
 
 
 # read video
-video = cv2.VideoCapture(r'test_videos\solidYellowLeft.mp4')
+video = cv2.VideoCapture(video_path)
 # video output
 codec = cv2.VideoWriter_fourcc(*'XVID') #MPEG 4 codec
 fps = video.get(cv2.CAP_PROP_FPS)
 video_size = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))) 
-out = cv2.VideoWriter('final.avi', codec, fps, video_size)
+out = cv2.VideoWriter(file_name, codec, fps, video_size)
 total_frame = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 current_frame = 0
 print('total_frame:',total_frame)
@@ -85,7 +89,7 @@ print('total_frame:',total_frame)
 while current_frame < total_frame:
     success, orig_frame = video.read()
     if not success:
-        video = cv2.VideoCapture(r'test_videos\solidYellowLeft.mp4')
+        video = cv2.VideoCapture(video_path)
         continue
 
     gray = cv2.cvtColor(orig_frame,cv2.COLOR_RGB2GRAY)
@@ -122,9 +126,6 @@ while current_frame < total_frame:
 
     # Define the Hough transform parameters
     # Make a blank the same size as our image to draw on
-
-    # Define the Hough transform parameters
-    # Make a blank the same size as our image to draw on
     rho = 1
     theta = np.pi/180
     threshold = 50 #can use to select the lines we need, more large than less line
@@ -144,11 +145,6 @@ while current_frame < total_frame:
     #     for line in lines:
     #         for x1,y1,x2,y2 in line:
     #             cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),3)
-
-    
-
-    # Create a "color" binary image to combine with line image
-    # color_edges = np.dstack((edges, edges, edges)) 
 
     # Draw the lines on the edge image
     edited_frame = cv2.addWeighted(orig_frame, 0.8, line_image, 1, 0) 
